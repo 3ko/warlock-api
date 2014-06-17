@@ -1,19 +1,19 @@
 {
-  "name": "pm2-warlock-api",
+  "name": "warlock-api",
   "version": "0.0.1",
-  "description": "pm2-warlock-api ===============",
+  "description": "warlock-api ===============",
   "main": "lib/client.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/ekozan/pm2-warlock-api.git"
+    "url": "git://github.com/ekozan/warlock-api.git"
   },
   "author": "Maxime FRANCK",
   "license": "LGPL2",
   "bugs": {
-    "url": "https://github.com/ekozan/pm2-warlock-api/issues"
+    "url": "https://github.com/ekozan/warlock-api/issues"
   },
   "homepage": "https://github.com/ekozan/pm2-warlock-api",
   "dependencies": {

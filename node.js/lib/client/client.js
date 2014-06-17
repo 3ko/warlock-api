@@ -3,12 +3,11 @@ var fs = require('fs'),
     util = require('util'),
     request = require('request'),
     //async = require('./helpers').async,
+    Tools = require('../tools').Tools,
     EventEmitter = require('events').EventEmitter;
 
 
 var Client = exports.Client = function (options) {
-  this.clouds = {};
-  this.datacenters = {};
   this.options = options;
   this._request = request;
 
@@ -26,17 +25,14 @@ Client.prototype.request = function (options, callback) {
   options = options || {};
 
   var password = this.options.get('password') || this.options.get('apiToken'),
-      auth = new Buffer(this.options.get('username') + ':' + password).toString('base64'),
       proxy = this.options.get('proxy'),
       optHeaders,
       self = this,
       opts = {};
-
   opts = {
     method: options.method || 'GET',
     uri: (options.remoteUri || this.options.get('remoteUri')) + '/' + options.uri.join('/'),
     headers: {
-      'Authorization': 'Basic ' + auth,
       'Content-Type': 'application/json'
     },
     timeout: options.timeout || this.options.get('timeout') || 8 * 60 * 1000,
@@ -65,37 +61,52 @@ Client.prototype.request = function (options, callback) {
 
   this.emit('debug::request', opts);
 
-  //
-  // When we don't pass a callback just return the request object
-  //
-  return !callback || typeof callback !== 'function'
-    ? this._request(opts)
-    : this._request(opts, function requesting(err, res, body) {
-      if (err) return callback(err);
+  var email = options.user_email || this.options.get('email') || null;
+  var pkey = options.user_pkey || this.options.get('pkey') || null;
 
-      var poweredBy = res.headers['x-powered-by'],
-          result, statusCode, error;
-
-      try {
-        statusCode = res.statusCode;
-        result = JSON.parse(body);
-      } catch (e) {}
-
-      self.emit('debug::response', { statusCode: statusCode, result: result });
-
-      if (!self.options.get('ignorePoweredBy') && !poweredBy || !~poweredBy.indexOf('Pm2-Warlock')) {
-        error = new Error('The Pm2-Warlock-Api requires you to connect the Pm2-Warlock\'s stack');
-        error.statusCode = 403;
-        error.result = '';
-      } else if (failCodes[statusCode]) {
-        error = new Error('Error (' + statusCode + '): ' + failCodes[statusCode]);
-        error.statusCode = statusCode;
-        error.result = result;
-      }
-      // Only add the response argument when people ask for it
-      if (callback.length === 3) return callback(error, result, res);
-      callback(error, result);
+  if(email && pkey)
+  {
+    var time = new Date().getTime();
+    Tools.sign(pkey,email+opts.method+'/'+options.uri.join('/')+time,function(err,hash){
+      opts.headers['Authorization'] = 'WL-TOKEN '+email+' '+hash+' '+time;
+      console.log(opts.headers['Authorization']);
+      return next();
     });
+  }else{
+    return next();
+  }
+
+
+  function next(){
+    return !callback || typeof callback !== 'function'
+      ? self._request(opts)
+      : self._request(opts, function requesting(err, res, body) {
+        if (err) return callback(err);
+
+        var poweredBy = res.headers['x-powered-by'],
+            result, statusCode, error;
+
+        try {
+          statusCode = res.statusCode;
+          result = JSON.parse(body);
+        } catch (e) {}
+
+        self.emit('debug::response', { statusCode: statusCode, result: result });
+
+        if (!self.options.get('ignorePoweredBy') && !poweredBy || !~poweredBy.indexOf('Warlock')) {
+          error = new Error('The Warlock-Api requires you to connect the warlock\'s stack');
+          error.statusCode = 403;
+          error.result = '';
+        } else if (failCodes[statusCode]) {
+          error = new Error('Error (' + statusCode + '): ' + failCodes[statusCode]);
+          error.statusCode = statusCode;
+          error.result = result;
+        }
+        // Only add the response argument when people ask for it
+        if (callback.length === 3) return callback(error, result, res);
+        callback(error, result);
+      });
+    }
 };
 
 Client.prototype.upload = function (options, callback) {
