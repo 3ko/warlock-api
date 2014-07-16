@@ -69,7 +69,6 @@ Client.prototype.request = function (options, callback) {
     var time = new Date().getTime();
     Tools.sign(pkey,email+opts.method+'/'+options.uri.join('/')+time,function(err,hash){
       opts.headers['Authorization'] = 'WL-TOKEN '+email+' '+hash+' '+time;
-      console.log(opts.headers['Authorization']);
       return next();
     });
   }else{
